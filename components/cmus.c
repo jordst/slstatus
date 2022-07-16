@@ -2,26 +2,35 @@
 #include <string.h>
 #include "../util.h"
 
+char*
+return_str(FILE *s)
+{
+	char *newstr;
+	int ch;
+	int i=0;
+	while ( (ch=fgetc(s)) != EOF ) {
+		newstr[i] = ch;
+		i++;
+	}
+	return newstr;
+}
+
 const char *
 cmus_status(void)
 {
-	char song[64];
-	char status[64];
-	//char nerr[7] = "playing";
-	char songname[512], cmusstatus[512];
-	FILE  *s,*n;
+	FILE *s, *n;
+	int ch;
+	char *song_name, *cmus_status;
 
-	sprintf(status, "cmus-remote -C status | awk 'FNR==1 {print $2}' > /tmp/cstatus");
-	s = popen(status, "r");
+	s = popen("cmus-remote -C status | awk 'FNR==1 {print $2}'", "r");
+	cmus_status = return_str(s);
 	pclose(s);
-	pscanf("/tmp/cstatus", "%s", cmusstatus);
 
-	if (cmusstatus[1] == 'l') {
-		sprintf(song, "cmus-remote -C 'format_print \"%%t - %%a\"' > /tmp/csong");
-		n = popen(song, "r");
+	if (strcmp(cmus_status, "playing")) {
+		n = popen("cmus-remote -C 'format_print %t - %a' | tr '\n' ' '", "r");
+		song_name = return_str(n);
 		pclose(n);
-		pscanf("/tmp/csong", "%[^\n]", songname);
-		return bprintf("%s", songname);
+		return bprintf(song_name);
 	}
 	return bprintf("");
 }
